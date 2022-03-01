@@ -1,0 +1,83 @@
+Set-up Apache/HTTPD
+
+1. dhclient to request ip address (may take a moment)
+
+2. "ip addr" to see if you have an IP - write down IP for later. "ping -c1 google.com" for good measure.
+
+3. yum install -y httpd   (may take a moment)
+
+4. firewall-cmd --permanent --add-port=80/tcp
+
+5. firewall-cmd --reload
+
+6. firewall-cmd --query-port=80/tcp (should report "yes")
+
+7. systemctl start httpd
+
+8. systemctl status httpd
+
+
+Change HTTPD Port:
+sudo vi /etc/httpd/conf/httpd.conf
+Update Firewall
+
+
+Create CA
+
+- Use Bridged networking
+- Make sure you have an IP Address
+- Create a user account that you can use with SCP (Links to an external site.) to copy files to the server.
+- useradd username
+- passwd username password_for_account
+- Make sure SSHD is running (we will need it to scp files)
+- Update firewall to always allow port 22 (SSH/SCP)
+
+
+I. Create the Certificate Authority
+
+On CA:
+cd /etc/pki/CA
+touch index.txt   
+echo 1000 > serial
+
+openssl genrsa -des3 -out private/cakey.pem 2048
+Describe this step and what the command arguments mean 
+
+openssl req -new -x509 -days 365 -key private/cakey.pem -out cacert.pem
+ 
+
+II. Create the certificate request on your web server
+On Web Server:
+
+openssl req -newkey rsa:2048 -keyout websrv.key -out websrv.csr
+scp websrv.csr USER@CA:/etc/pki/CA
+
+
+ 
+III. Sign the certificate on the Certificate Authority
+
+On the CA
+
+openssl ca -out websrv.crt -infiles websrv.csr
+scp websrv.crt USER@Webserver:/home/user
+
+
+
+HTTPS SETUP
+
+On your CentOS Web Server - make sure to copy the files into the following locations:
+Web Server certificate: /etc/pki/tls/certs
+Web server private key: /etc/pki/tls/private
+
+yum -y install mod_ssl
+
+3. Update /etc/httpd/conf.d/ssl.conf
+Find SSLCertificateFile and make sure the path and filename match your certificate file
+Find SSLCertificateKeyFile and make sure the path and filename match your key file
+
+4. Update firewall to allow port 443 - reload firewall
+
+5. Restart httpd
+
+6. Browse to your server using HTTPS=
+
